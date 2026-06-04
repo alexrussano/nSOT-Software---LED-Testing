@@ -1785,9 +1785,10 @@ class preliminarySweep(QtWidgets.QDialog, Ui_prelimSweep):
                 saveDataToSessionFolder(self, self.window.sessionFolder, self.dvFileName)
 
                 #Return to zero voltage gently
-                yield self.dac.buffer_ramp([DAC_out], [DAC_in_ref, DAC_in_sig, DAC_in_noise], [biasMax], [0], abs(int(biasMax * 1000)), 1000)
-                yield self.sleep(0.25)
-                yield self.dac.set_voltage(DAC_out, 0)
+                if biasMax != 0:
+                    yield self.dac.buffer_ramp([DAC_out], [DAC_in_ref, DAC_in_sig, DAC_in_noise], [biasMax], [0], abs(int(biasMax * 1000)), 1000)
+                    yield self.sleep(0.25)
+                    yield self.dac.set_voltage(DAC_out, 0)
                 self.push_startSweep.setEnabled(True)
 
             except:
