@@ -223,7 +223,11 @@ class Window(QtWidgets.QMainWindow, SampleCharacterizerWindowUI):
 
             if "Sample DAC" in equip.servers:
                 svr, ln, device_info, cnt, config = equip.servers["Sample DAC"]
-                self.dac = yield self.cxn_sample.dac_adc_giga
+                print(svr, ln, device_info, cnt, config)
+                if ln == "dac_adc":
+                    self.dac = yield self.cxn_sample.dac_adc
+                else:
+                    self.dac = yield self.cxn_sample.dac_adc_giga
                 yield self.dac.select_device(device_info)
             else:
                 print("'Sample DAC' not found, LabRAD connection to Sample Characterizer Failed.")

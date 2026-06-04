@@ -179,7 +179,7 @@ class IPS120Server(GPIBManagedServer):
                 resp = resp.rstrip()
             print(resp)
             print('got ident response:', resp)
-            if resp == 'IPS120-10  Version 3.03  (c) OXFORD 1994':
+            if 'IPS120-10' in resp:
                 returnValue(self.deviceName)
         except Exception as e:
             print('failed:', e)
