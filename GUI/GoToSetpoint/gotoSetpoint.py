@@ -436,7 +436,7 @@ class Window(QtWidgets.QMainWindow, GoToSetpointUI):
         delay = 2000
         self.sweeping = True
         yield self.dac.buffer_ramp([self.gateChan], [self.gateChan], [curr_gate], [0.0], steps, delay)
-        self.settingsDict['gate curent'] = 0.0
+        self.settingsDict['gate current'] = 0.0
         new_gate = yield self.dac.read_voltage(self.gateRefChan)
         self.currGateLbl.setText('Current Gate: ' + str(new_gate) + 'V')
         self.sweeping = False
