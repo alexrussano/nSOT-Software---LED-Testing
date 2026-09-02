@@ -285,9 +285,22 @@ class Window(QtWidgets.QMainWindow, ApproachUI):
                 print("'Scan DAC' not found, LabRAD connection to Approach Module Failed.")
                 return
 
-            #we now connect to the LED field display (kinda copying what was done for others, just using try/except that way if something goes
-            #awry then it just prints an error message.)
-            self.connectLED(cxn)
+            #Connect to the LED field display.
+            if "LED Display" in equip.servers:
+                svr, ln, device_info, cnt, config = equip.servers["LED Display"]
+                try:
+                    self.led = yield cxn.led_field_display
+                    if device_info is None:
+                        yield self.led.select_device()
+                    else:
+                        yield self.led.select_device(device_info)
+                    self.setApproachStatus(self.led_field_display_state)
+                except:
+                    self.led = False
+                    print("Error connecting LED Panel")
+                    printErrorInfo()
+            else:
+                print("Error - Could not find the LED Panel.")
 
             self.t0 = equip.sync_time
             self.last_touchdown_time = 0
@@ -932,47 +945,6 @@ class Window(QtWidgets.QMainWindow, ApproachUI):
 
 #--------------------------------------------------------------------------------------------------------------------------#
     """ The following section contains the PID approach sequence and all related functions."""
-
-    #How many times connectLED tries, and how long it waits between tries.
-    LED_CONNECT_ATTEMPTS = 5
-    LED_CONNECT_DELAY = 2.0
-
-    @inlineCallbacks
-    def connectLED(self, cxn):
-    
-        for attempt in range(1, self.LED_CONNECT_ATTEMPTS + 1):
-            #self.hf is the flag still connected to LabRAD. if it is False we
-            #were disconnected mid-retry
-            if self.hf is False:
-                return
-
-            try:
-                led = yield cxn.led_field_display
-
-                if attempt > 1:
-                    yield led.refresh_devices()
-
-                yield led.select_device()
-            except:
-                self.led = False
-
-                if attempt < self.LED_CONNECT_ATTEMPTS:
-                    print("'led_field_display' not reachable (attempt %d of %d), retrying in %g s." % (attempt, self.LED_CONNECT_ATTEMPTS, self.LED_CONNECT_DELAY))
-                    yield self.sleep(self.LED_CONNECT_DELAY)
-                else:
-                    print("'led_field_display' not found after %d attempts. The LED field display will not update this session." % (self.LED_CONNECT_ATTEMPTS,))
-            else:
-                if self.hf is False:
-                    return
-
-                self.led = led
-
-                if attempt > 1:
-                    print("Connected to 'led_field_display' on attempt %d." % (attempt,))
-
-
-                self.setApproachStatus(self.led_field_display_state)
-                return
 
     @inlineCallbacks
     def writeLEDState(self, led_state, height = None):

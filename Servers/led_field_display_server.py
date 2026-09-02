@@ -78,6 +78,11 @@ FILL_COLORS = ('red', 'green')
 #Seconds to wait after the port is opened for the microcontroller to accept/do its first commmand
 SETTLE_TIME = 2.0
 
+#The state the panel is parked on whenever a client goes away or the server stops. The
+#panel holds whatever it was last told until something tells it otherwise, so without this
+#a closed GUI leaves an approach that finished hours ago sitting up on the wall.
+IDLE_STATE = 'Idle'
+
 
 class serverInfo(object):
     '''
@@ -117,11 +122,25 @@ class LEDFieldDisplayWrapper(DeviceWrapper):
         yield deferLater(reactor, SETTLE_TIME, lambda: None)
         print("Connected")
 
+    @inlineCallbacks
     def shutdown(self):
         '''
-        Disconnect from the serial port when we shut down
+        sets the panel to IDLE mode and then shuts down.
         '''
-        return self.packet().close().send()
+        try:
+            yield self.write(STATE_CODES[IDLE_STATE] + '\n')
+        except Exception:
+            #Panel already unplugged, or the serial server went away first. Nothing to
+            #park, so just close up.
+            print("Could not set the LED field display to Idle before closing the port.")
+
+        try:
+            '''shuts down'''
+            yield self.packet().close().send()
+        except Exception:
+            #We are shutting down either way, so a failed close must not take the rest
+            #of the shutdown sequence down with it.
+            pass
 
     def packet(self):
         '''
@@ -229,6 +248,27 @@ class LEDFieldDisplayServer(DeviceServer):
             devName = '%s - %s' % (serServer, port)
             devs += [(devName, (server, port))]
         returnValue(devs)
+
+    def expireContext(self, c):
+        '''
+        Runs when something disconnects.
+        '''
+        dev = None
+
+        if 'device' in c:
+            try:
+                dev = self.devices[c['device']]
+            except KeyError:
+                pass
+
+        DeviceServer.expireContext(self, c)
+
+        if dev is None:
+            return
+
+
+        d = dev.write(STATE_CODES[IDLE_STATE] + '\n')
+        d.addErrback(lambda reason: None)
 
     @setting(100)
     def connect(self, c, server, port):
